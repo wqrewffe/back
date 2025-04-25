@@ -3,3 +3,4 @@ Flask-Cors
 wikipedia
 requests
 duckduckgo-search
+gunicorn==20.1.0
