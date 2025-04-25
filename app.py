@@ -565,5 +565,5 @@ def _corsify_actual_response(response):
     return response
 
 if __name__ == '__main__':
-    # For production
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
