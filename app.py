@@ -56,7 +56,7 @@ def generate_summary(text):
         response = query_gemini(prompt, use_history=False)
         return response.replace("🔮 NAF AI Response:\n\n", "")
     except Exception:
-        return text[:500] + "..." if len(text) > 500 else text
+        return text[:1000] + "..." if len(text) > 1000 else text
 
 def format_wikipedia_content(content):
     """Format Wikipedia content to preserve complete paragraphs only."""
@@ -138,8 +138,8 @@ def add_to_gemini_history(user_id, query, response):
         'assistant': response.replace("🔮 NAF AI Response:\n\n", "")
     })
     # Keep only the most recent 5 exchanges for context
-    if len(history['gemini_history']) > 5:
-        history['gemini_history'] = history['gemini_history'][-5:]
+    if len(history['gemini_history']) > 25:
+        history['gemini_history'] = history['gemini_history'][-25:]
 
 def get_related_history(user_id, query):
     """Get relevant history entries based on similarity to current query"""
@@ -240,7 +240,7 @@ def search_wikipedia(query, user_id=None):
             
         return response
     except wikipedia.exceptions.DisambiguationError as e:
-        options = '\n'.join([f"• {opt}" for opt in e.options[:5]])
+        options = '\n'.join([f"• {opt}" for opt in e.options[:10]])
         return f"🔍 Multiple options found:\n\n{options}\n\nPlease refine your query."
     except Exception as e:
         return f"⚠️ NAF error: {str(e)}"
@@ -248,14 +248,14 @@ def search_wikipedia(query, user_id=None):
 def search_duckduckgo(query, user_id=None):
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=50))
+            results = list(ddgs.text(query, max_results=25))
             if not results:
                 return "🔍 No search results found for your query."
                 
             # Generate summary from the first 3 results
             combined_content = "\n".join([
                 f"{res.get('title', '')}: {res.get('body', '')}"
-                for res in results[:3]
+                for res in results[:25]
             ])
             summary = generate_summary(combined_content)
             
@@ -324,7 +324,7 @@ def get_news(query, user_id=None):
         
         if response["status"] == "ok" and response["articles"]:
             news_items = []
-            for article in response["articles"][:5]:
+            for article in response["articles"][:30]:
                 title = article['title'] or "No title"
                 source = article['source']['name'] or "Unknown source"
                 description = article['description'] or "No description available"
