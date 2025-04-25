@@ -23,6 +23,7 @@ CORS(app, resources={
         "methods": ["POST", "OPTIONS"]
     }
 }, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": "https://ainaf.vercel.app/"}})
 
 # Set a secret key for session management
 app.secret_key = os.urandom(24)
@@ -564,6 +565,6 @@ def _corsify_actual_response(response):
     response.headers.add("Access-Control-Allow-Methods", "*")
     return response
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))  
+    app.run(host='0.0.0.0', port=port, debug=False)  
