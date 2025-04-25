@@ -13,6 +13,11 @@ from datetime import datetime
 app = Flask(__name__)
 # Configure CORS properly
 CORS(app, resources={
+    r"/": {
+        "origins": "*",
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    },
     r"/ask": {
         "origins": "*",
         "methods": ["POST", "OPTIONS"],
@@ -22,9 +27,9 @@ CORS(app, resources={
         "origins": "*",
         "methods": ["POST", "OPTIONS"]
     }
-}, supports_credentials=True)
-CORS(app, resources={r"/*": {"origins": "https://ainaf.vercel.app/"}})
-
+}, supports_credentials=True) 
+# CORS(app, resources={r"/*": {"origins": "https://ainaf.vercel.app/"}})
+CORS(app, resources={r"/*": {"origins": "*"}})
 # Set a secret key for session management
 app.secret_key = os.urandom(24)
 
