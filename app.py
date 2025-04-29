@@ -156,7 +156,7 @@ def get_related_history(user_id, query):
             related.append(entry)
     
     # Return the 3 most recent related entries
-    return related[-3:] if related else []
+    return related[-25:] if related else []
 
 # ========== API INTEGRATIONS ==========
 def query_gemini(prompt, use_history=True, user_id=None):
@@ -248,7 +248,7 @@ def search_wikipedia(query, user_id=None):
 def search_duckduckgo(query, user_id=None):
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=25))
+            results = list(ddgs.text(query, max_results=500))
             if not results:
                 return "🔍 No search results found for your query."
                 
@@ -426,6 +426,16 @@ def get_answer(query, user_id):
             response = get_definition(word, user_id)
         elif any(word in query_lower for word in ["history", "medical", "war", "disease", "president", "empire","about","born","birth"]):
             response = search_wikipedia(query, user_id)
+        elif any(word in query_lower for word in [
+            "founder of you", "who creates you", "who is your creator", "who made you", "who built you", 
+            "who developed you", "creator of you", "developer of you", "inventor of you"
+        ]):
+            response = (
+        "I was built by Nafis Abdullah, a 15-year-old Bangladeshi student, coder, and future scientist! "
+        "He's skilled in Python, C, and C++, and actively participates in programming contests. "
+        "Nafis dreams of building smart AI like me to help others."
+    )
+
         else:
             response = search_duckduckgo(query, user_id)
             if "No results" in response:
