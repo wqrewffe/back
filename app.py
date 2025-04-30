@@ -458,8 +458,8 @@ def get_answer(query, user_id):
         ]):
             response = (
         "I was built by Nafis Abdullah, a 15-year-old Bangladeshi student, coder, and future scientist! "
-        "He's skilled in Python, C, and C++, Javascript"
-        "Nafis dreams of building smart AI like me to help others."
+        "He's skilled in Python, C, and C++, Javascript. "
+        " Nafis dreams of building smart AI like me to help others."
     )
 
         else:
@@ -468,7 +468,7 @@ def get_answer(query, user_id):
                 response = f"I couldn't find specific information about '{query}'. Would you like to try rephrasing your question?"
         
         # Add history context if available
-        if history_prompt and not query_lower.startswith("ai"):  # Don't add for AI queries as they have their own memory
+        if history_prompt and not query_lower.startswith("."):  # Don't add for AI queries as they have their own memory
             response = history_prompt + response
             
         return response
