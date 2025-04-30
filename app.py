@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
+from flask_socketio import SocketIO
 import wikipedia
 import requests
 from duckduckgo_search import DDGS
@@ -10,8 +11,11 @@ import json
 import os
 from datetime import datetime
 
+# Initialize Flask app
 app = Flask(__name__)
-# Configure CORS properly
+app.secret_key = os.urandom(24)  # Set a secret key for session management
+
+# Apply CORS
 CORS(app, resources={
     r"/": {
         "origins": "*",
@@ -25,13 +29,35 @@ CORS(app, resources={
     },
     r"/suggest": {
         "origins": "*",
-        "methods": ["POST", "OPTIONS"]
+        "methods": ["POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    },
+    r"/*": {
+        "origins": "*"
     }
-}, supports_credentials=True) 
-# CORS(app, resources={r"/*": {"origins": "https://ainaf.vercel.app/"}})
-CORS(app, resources={r"/*": {"origins": "*"}})
-# Set a secret key for session management
-app.secret_key = os.urandom(24)
+}, supports_credentials=True)
+
+# Setup SocketIO with CORS support
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Active user counter
+active_users = 9
+
+@socketio.on('connect')
+def handle_connect():
+    global active_users
+    active_users += 1
+    socketio.emit('active_users', active_users)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    global active_users
+    active_users -= 1
+    socketio.emit('active_users', active_users)
+
+# Run the app
+if __name__ == '__main__':
+    socketio.run(app)
 
 # Global dictionary to store search history if session isn't available
 user_history = {}
@@ -156,7 +182,7 @@ def get_related_history(user_id, query):
             related.append(entry)
     
     # Return the 3 most recent related entries
-    return related[-25:] if related else []
+    return related[-10:] if related else []
 
 # ========== API INTEGRATIONS ==========
 def query_gemini(prompt, use_history=True, user_id=None):
@@ -248,7 +274,7 @@ def search_wikipedia(query, user_id=None):
 def search_duckduckgo(query, user_id=None):
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=500))
+            results = list(ddgs.text(query, max_results=15))
             if not results:
                 return "🔍 No search results found for your query."
                 
@@ -265,8 +291,8 @@ def search_duckduckgo(query, user_id=None):
                 url = result.get('href', '#')
                 snippet = result.get('body', 'No description available.')
                 snippet = snippet.replace('\n', ' ').strip()
-                if len(snippet) > 200:
-                    snippet = snippet[:200] + '...'
+                if len(snippet) > 400:
+                    snippet = snippet[:400] + '.'
                 
                 formatted_results.append(
                     f"{i}. {title}\n"
@@ -428,11 +454,11 @@ def get_answer(query, user_id):
             response = search_wikipedia(query, user_id)
         elif any(word in query_lower for word in [
             "founder of you", "who creates you", "who is your creator", "who made you", "who built you", 
-            "who developed you", "creator of you", "developer of you", "inventor of you"
+            "who developed you", "creator of you", "developer of you", "inventor of you","you"
         ]):
             response = (
         "I was built by Nafis Abdullah, a 15-year-old Bangladeshi student, coder, and future scientist! "
-        "He's skilled in Python, C, and C++, and actively participates in programming contests. "
+        "He's skilled in Python, C, and C++, Javascript"
         "Nafis dreams of building smart AI like me to help others."
     )
 
