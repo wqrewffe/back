@@ -63,7 +63,7 @@ if __name__ == '__main__':
 user_history = {}
 
 # ========== HELPER FUNCTIONS ==========
-def format_text(text, max_line_length=8000):
+def format_text(text, max_line_length=500):
     """Format text with proper line wrapping while preserving complete paragraphs."""
     text = html.escape(text)  # Escape HTML special characters
     paragraphs = text.split('\n')
@@ -79,7 +79,7 @@ def generate_summary(text):
     """Generate a concise summary of the given text using Gemini."""
     try:
         prompt = f"Please provide a concise 10-12 sentence summary of the following text:\n\n{text[:3000]}\n\nSummary:"
-        response = query_gemini(prompt, use_history=False)
+        response = query_gemini(prompt, use_history=True)
         return response.replace("🔮 NAF AI Response:\n\n", "")
     except Exception:
         return text[:1000] + "..." if len(text) > 1000 else text
@@ -153,8 +153,8 @@ def add_to_search_history(user_id, query, response, source):
         'timestamp': datetime.now().isoformat()
     })
     # Keep only the most recent 10 searches
-    if len(history['search_history']) > 100:
-        history['search_history'] = history['search_history'][-100:]
+    if len(history['search_history']) > 50:
+        history['search_history'] = history['search_history'][-50:]
 
 def add_to_gemini_history(user_id, query, response):
     """Add a conversation to the Gemini history"""
@@ -164,8 +164,8 @@ def add_to_gemini_history(user_id, query, response):
         'assistant': response.replace("🔮 NAF AI Response:\n\n", "")
     })
     # Keep only the most recent 5 exchanges for context
-    if len(history['gemini_history']) > 25:
-        history['gemini_history'] = history['gemini_history'][-25:]
+    if len(history['gemini_history']) > 7:
+        history['gemini_history'] = history['gemini_history'][-7:]
 
 def get_related_history(user_id, query):
     """Get relevant history entries based on similarity to current query"""
@@ -182,7 +182,7 @@ def get_related_history(user_id, query):
             related.append(entry)
     
     # Return the 3 most recent related entries
-    return related[-10:] if related else []
+    return related[-7:] if related else []
 
 # ========== API INTEGRATIONS ==========
 def query_gemini(prompt, use_history=True, user_id=None):
@@ -274,14 +274,14 @@ def search_wikipedia(query, user_id=None):
 def search_duckduckgo(query, user_id=None):
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=15))
+            results = list(ddgs.text(query, max_results=30))
             if not results:
                 return "🔍 No search results found for your query."
                 
             # Generate summary from the first 3 results
             combined_content = "\n".join([
                 f"{res.get('title', '')}: {res.get('body', '')}"
-                for res in results[:25]
+                for res in results[:10]
             ])
             summary = generate_summary(combined_content)
             
@@ -384,33 +384,37 @@ def get_definition(word, user_id=None):
 
         data = response.json()
         if "results" in data and data["results"]:
-            lexical_entries = data["results"][0]["lexicalEntries"]
+            lexical_entries = data["results"][0].get("lexicalEntries", [])
             definitions = []
-            
-            for entry in lexical_entries[:2]:
-                category = entry["lexicalCategory"]["text"]
-                for sense in entry["entries"][0]["senses"][:2]:
+
+            for entry in lexical_entries[:10]:
+                category = entry.get("lexicalCategory", {}).get("text", "Unknown")
+                senses = entry.get("entries", [{}])[0].get("senses", [])
+                for sense in senses[:10]:
                     if "definitions" in sense:
                         definitions.append(f"• [{category}] {sense['definitions'][0]}")
-            
+
+            if not definitions:
+                return f"❌ No definitions found for '{word}'."
+
             definition_text = '\n'.join(definitions[:4])
             summary = generate_summary(f"Definitions of {word}:\n{definition_text}")
-            
+
             result = (
                 f"📖 Definitions of {word}:\n\n"
                 f"📌 Summary:\n{summary}\n\n"
                 f"📖 Full Definitions:\n{definition_text}"
             )
-            
+
             # Add to search history
             if user_id:
-                add_to_search_history(user_id, query, result, "dictionary")
-                
+                add_to_search_history(user_id, word, result, "dictionary")
+
             return result
+
         return f"❌ No definition found for '{word}'."
     except Exception as e:
         return f"⚠️ Dictionary error: {str(e)}"
-
 # ========== MASTER FUNCTION ==========
 def get_answer(query, user_id):
     query_lower = query.lower().strip()
@@ -454,7 +458,7 @@ def get_answer(query, user_id):
             response = search_wikipedia(query, user_id)
         elif any(word in query_lower for word in [
             "founder of you", "who creates you", "who is your creator", "who made you", "who built you", 
-            "who developed you", "creator of you", "developer of you", "inventor of you","you"
+            "who developed you", "creator of you", "developer of you", "inventor of you","you","your"
         ]):
             response = (
         "I was built by Nafis Abdullah, a 15-year-old Bangladeshi student, coder, and future scientist! "
