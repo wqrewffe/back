@@ -79,7 +79,7 @@ def generate_summary(text):
     """Generate a concise summary of the given text using Gemini."""
     try:
         prompt = f"Please provide a concise 10-12 sentence summary of the following text:\n\n{text[:3000]}\n\nSummary:"
-        response = query_gemini(prompt, use_history=True)
+        response = query_gemini(prompt, use_history=False)
         return response.replace("🔮 NAF AI Response:\n\n", "")
     except Exception:
         return text[:1000] + "..." if len(text) > 1000 else text
