@@ -4,3 +4,4 @@ wikipedia
 requests
 duckduckgo-search
 gunicorn==20.1.0
+Flask_Socketio
