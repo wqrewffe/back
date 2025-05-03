@@ -10,70 +10,96 @@ import html
 import json
 import os
 from datetime import datetime
+from flask_caching import Cache
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_compress import Compress
 
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Set a secret key for session management
 
-# Apply CORS
+# Add caching configuration
+cache = Cache(app, config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 300  # Cache for 5 minutes
+})
+
+# Apply CORS with optimized settings
 CORS(app, resources={
     r"/": {
         "origins": "*",
         "methods": ["POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
+        "allow_headers": ["Content-Type"],
+        "max_age": 3600  # Cache preflight requests for 1 hour
     },
     r"/ask": {
         "origins": "*",
         "methods": ["POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
+        "allow_headers": ["Content-Type"],
+        "max_age": 3600
     },
     r"/suggest": {
         "origins": "*",
         "methods": ["POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
+        "allow_headers": ["Content-Type"],
+        "max_age": 3600
     },
     r"/*": {
         "origins": "*"
     }
 }, supports_credentials=True)
 
-# Setup SocketIO with CORS support
-socketio = SocketIO(app, cors_allowed_origins="*")
+# Setup SocketIO with optimized settings
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', ping_timeout=60)
 
-# Active user counter
+# Add rate limiting
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
+
+# Active user counter with optimized storage
 active_users = 9
+user_sessions = {}
 
 @socketio.on('connect')
 def handle_connect():
     global active_users
     active_users += 1
+    user_sessions[request.sid] = datetime.now()
     socketio.emit('active_users', active_users)
 
 @socketio.on('disconnect')
 def handle_disconnect():
     global active_users
     active_users -= 1
+    if request.sid in user_sessions:
+        del user_sessions[request.sid]
     socketio.emit('active_users', active_users)
 
-# Run the app
-if __name__ == '__main__':
-    socketio.run(app)
+# Add response compression
+Compress(app)
 
 # Global dictionary to store search history if session isn't available
 user_history = {}
 
 # ========== HELPER FUNCTIONS ==========
 def format_text(text, max_line_length=500):
-    """Format text with proper line wrapping while preserving complete paragraphs."""
-    text = html.escape(text)  # Escape HTML special characters
+    """Optimized text formatting with caching."""
+    cache_key = f"format_{hash(text)}"
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return cached_result
+
+    text = html.escape(text)
     paragraphs = text.split('\n')
-    formatted_paragraphs = []
+    formatted_paragraphs = [p for p in paragraphs if p.strip()]
+    result = '\n\n'.join(formatted_paragraphs)
     
-    for para in paragraphs:
-        if para.strip():
-            formatted_paragraphs.append(para)
-    
-    return '\n\n'.join(formatted_paragraphs)
+    cache.set(cache_key, result)
+    return result
 
 def generate_summary(text):
     """Generate a concise summary of the given text using Gemini."""
@@ -274,7 +300,7 @@ def search_wikipedia(query, user_id=None):
 def search_duckduckgo(query, user_id=None):
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=30))
+            results = list(ddgs.text(query, max_results=10))
             if not results:
                 return "🔍 No search results found for your query."
                 
@@ -415,14 +441,22 @@ def get_definition(word, user_id=None):
         return f"❌ No definition found for '{word}'."
     except Exception as e:
         return f"⚠️ Dictionary error: {str(e)}"
+
 # ========== MASTER FUNCTION ==========
+@limiter.limit("10 per minute")
 def get_answer(query, user_id):
     query_lower = query.lower().strip()
     if not query_lower:
         return "Please enter a valid query."
 
     try:
-        # Check if there's similar history first
+        # Check cache first
+        cache_key = f"answer_{hash(query_lower)}"
+        cached_answer = cache.get(cache_key)
+        if cached_answer:
+            return cached_answer
+
+        # Check related history with optimized matching
         related_history = get_related_history(user_id, query)
         history_prompt = ""
         
@@ -430,8 +464,7 @@ def get_answer(query, user_id):
             history_items = []
             for item in related_history:
                 history_items.append(f"- Previous query: {item['query']}")
-                # Include a snippet of the response
-                response_preview = item['response'].split('\n')[0][:100] + "..."
+                response_preview = summarize_response(item['response'])
                 history_items.append(f"  Response: {response_preview}")
             
             history_prompt = (
@@ -439,8 +472,9 @@ def get_answer(query, user_id):
                 "\n".join(history_items) + 
                 "\n\nHere's the new answer:\n\n"
             )
-            
-        # Process the query as before
+
+        # Process query with optimized routing
+        response = None
         if query_lower.startswith("."):
             response = query_gemini(query[len("."):].strip(), use_history=True, user_id=user_id)
         elif query_lower.startswith(("solve", "calculate", "compute")):
@@ -455,32 +489,26 @@ def get_answer(query, user_id):
             word = re.sub(r'^(define|what is|meaning of)\s+', '', query_lower)
             response = get_definition(word, user_id)
         elif any(word in query_lower for word in ["history", "medical", "war", "disease", "president", "empire","about","born","birth"]):
-            response = search_wikipedia(query, user_id)
-        elif any(word in query_lower for word in [
-            "founder of you", "who creates you", "who is your creator", "who made you", "who built you", 
-            "who developed you", "creator of you", "developer of you", "inventor of you","you","your"
-        ]):
-            response = (
-        "I was built by Nafis Abdullah, a 15-year-old Bangladeshi student, coder, and future scientist! "
-        "He's skilled in Python, C, and C++, Javascript. "
-        " Nafis dreams of building smart AI like me to help others."
-    )
-
+            response = cached_search(query, 'wikipedia')
         else:
-            response = search_duckduckgo(query, user_id)
+            response = cached_search(query, 'duckduckgo')
             if "No results" in response:
                 response = f"I couldn't find specific information about '{query}'. Would you like to try rephrasing your question?"
-        
+
         # Add history context if available
-        if history_prompt and not query_lower.startswith("."):  # Don't add for AI queries as they have their own memory
+        if history_prompt and not query_lower.startswith("."):
             response = history_prompt + response
-            
+
+        # Cache the response
+        cache.set(cache_key, response, timeout=300)
         return response
+
     except Exception as e:
         return f"⚠️ Error processing your request: {str(e)}"
 
 # ========== Flask Routes ==========
 @app.route('/ask', methods=['POST', 'OPTIONS'])
+@limiter.limit("10 per minute")
 def ask():
     if request.method == 'OPTIONS':
         return _build_cors_preflight_response()
@@ -494,23 +522,28 @@ def ask():
         if not query:
             return jsonify({"error": "Query cannot be empty"}), 400
         
-        # Get or create user ID (preferably from session, fallback to request)
+        # Get or create user ID with optimized session handling
         user_id = data.get('user_id', None)
         try:
             user_id = get_user_session_id()
         except Exception:
-            # If session fails, use the provided user_id or generate one
             if not user_id:
                 user_id = str(os.urandom(16).hex())
         
+        # Get answer with caching
         answer = get_answer(query, user_id)
+        
+        # Add performance metrics
+        response_time = datetime.now().isoformat()
+        
         return jsonify({
             "status": "success",
             "response": answer,
             "query": query,
-            "user_id": user_id,  # Return the user ID for client-side storage if session fails
-            "timestamp": datetime.now().isoformat(),
-            "has_history": len(get_user_history(user_id)['search_history']) > 0
+            "user_id": user_id,
+            "timestamp": response_time,
+            "has_history": len(get_user_history(user_id)['search_history']) > 0,
+            "active_users": active_users
         })
     except Exception as e:
         return jsonify({
@@ -610,6 +643,45 @@ def _corsify_actual_response(response):
     response.headers.add("Access-Control-Allow-Methods", "*")
     return response
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  
-    app.run(host='0.0.0.0', port=port, debug=False)  
+# Add new feature: Response summarization
+def summarize_response(text, max_length=200):
+    """Generate a concise summary of the response."""
+    if len(text) <= max_length:
+        return text
+    
+    sentences = text.split('.')
+    summary = []
+    current_length = 0
+    
+    for sentence in sentences:
+        if current_length + len(sentence) <= max_length:
+            summary.append(sentence)
+            current_length += len(sentence)
+        else:
+            break
+    
+    return '.'.join(summary) + '...'
+
+# Add new feature: Smart caching for search results
+@cache.memoize(timeout=300)
+def cached_search(query, source):
+    """Cache search results for frequently asked questions."""
+    if source == 'wikipedia':
+        return search_wikipedia(query)
+    elif source == 'duckduckgo':
+        return search_duckduckgo(query)
+    return None
+
+# Add new route for performance metrics
+@app.route('/metrics', methods=['GET'])
+def get_metrics():
+    return jsonify({
+        "active_users": active_users,
+        "user_sessions": len(user_sessions),
+        "cache_stats": cache.get_stats() if hasattr(cache, 'get_stats') else None
+    })
+
+# Run the app with optimized settings
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)  
