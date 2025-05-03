@@ -87,16 +87,159 @@ user_history = {}
 
 # ========== HELPER FUNCTIONS ==========
 def format_text(text, max_line_length=500):
-    """Optimized text formatting with caching."""
+    """Enhanced text formatting with styling and emojis."""
     cache_key = f"format_{hash(text)}"
     cached_result = cache.get(cache_key)
     if cached_result:
         return cached_result
 
+    # Extended emoji map for different types of content
+    emoji_map = {
+        # Basic indicators
+        "important": "❗",
+        "note": "📝",
+        "info": "ℹ️",
+        "warning": "⚠️",
+        "success": "✅",
+        "error": "❌",
+        "question": "❓",
+        "answer": "💡",
+        "link": "🔗",
+        
+        # Time and date
+        "time": "⏰",
+        "date": "📅",
+        "schedule": "📆",
+        "deadline": "⏳",
+        "reminder": "🔔",
+        
+        # Location and travel
+        "location": "📍",
+        "map": "🗺️",
+        "travel": "✈️",
+        "direction": "🧭",
+        "destination": "🎯",
+        
+        # People and communication
+        "person": "👤",
+        "organization": "🏢",
+        "team": "👥",
+        "message": "💬",
+        "email": "📧",
+        "phone": "📱",
+        "contact": "📞",
+        
+        # Events and activities
+        "event": "🎉",
+        "meeting": "🤝",
+        "party": "🎊",
+        "celebration": "🎈",
+        "activity": "🎯",
+        
+        # Ideas and concepts
+        "idea": "💭",
+        "thought": "🤔",
+        "concept": "💡",
+        "plan": "📋",
+        "strategy": "🎯",
+        
+        # Information and knowledge
+        "fact": "📚",
+        "knowledge": "🧠",
+        "learning": "📖",
+        "education": "🎓",
+        "research": "🔬",
+        
+        # Tips and advice
+        "tip": "💡",
+        "advice": "💭",
+        "suggestion": "💡",
+        "recommendation": "👍",
+        "hint": "💡",
+        
+        # Examples and samples
+        "example": "📋",
+        "sample": "📄",
+        "template": "📑",
+        "pattern": "📊",
+        "model": "📐",
+        
+        # Summary and overview
+        "summary": "📌",
+        "overview": "📋",
+        "review": "📝",
+        "analysis": "📊",
+        "report": "📑",
+        
+        # Status and progress
+        "status": "📊",
+        "progress": "📈",
+        "complete": "✅",
+        "pending": "⏳",
+        "in progress": "🔄",
+        
+        # Categories and types
+        "category": "📑",
+        "type": "🏷️",
+        "label": "🏷️",
+        "tag": "🏷️",
+        "group": "📦",
+        
+        # Actions and operations
+        "action": "⚡",
+        "operation": "⚙️",
+        "process": "🔄",
+        "function": "⚡",
+        "task": "📋"
+    }
+
+    # Add styling to text
     text = html.escape(text)
+    
+    # Format headings with emojis
+    text = re.sub(r'^(#+)\s+(.+)$', lambda m: f'<h{len(m.group(1))}>📌 {m.group(2)}</h{len(m.group(1))}>', text, flags=re.MULTILINE)
+    
+    # Format bold and italic with enhanced styling
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>💪 \1</b>', text)  # Bold with strength emoji
+    text = re.sub(r'\*(.+?)\*', r'<i>✨ \1</i>', text)  # Italic with sparkle emoji
+    
+    # Format lists with bullet points
+    text = re.sub(r'^\s*[-•]\s+(.+)$', r'<li>• \1</li>', text, flags=re.MULTILINE)
+    
+    # Format numbered lists
+    text = re.sub(r'^\s*(\d+)\.\s+(.+)$', r'<li>🔢 \1. \2</li>', text, flags=re.MULTILINE)
+    
+    # Add emojis based on content
+    for keyword, emoji in emoji_map.items():
+        if keyword in text.lower():
+            text = text.replace(keyword, f"{emoji} {keyword}")
+    
+    # Format paragraphs with enhanced styling
     paragraphs = text.split('\n')
-    formatted_paragraphs = [p for p in paragraphs if p.strip()]
-    result = '\n\n'.join(formatted_paragraphs)
+    formatted_paragraphs = []
+    for p in paragraphs:
+        if p.strip():
+            if p.startswith('<h') or p.startswith('<li'):
+                formatted_paragraphs.append(p)
+            else:
+                # Add different paragraph styles based on content
+                if '?' in p:
+                    formatted_paragraphs.append(f'<p>❓ {p}</p>')  # Questions
+                elif '!' in p:
+                    formatted_paragraphs.append(f'<p>❗ {p}</p>')  # Exclamations
+                elif len(p) > 100:
+                    formatted_paragraphs.append(f'<p>📝 {p}</p>')  # Long paragraphs
+                else:
+                    formatted_paragraphs.append(f'<p>💭 {p}</p>')  # Regular paragraphs
+    
+    result = '\n'.join(formatted_paragraphs)
+    
+    # Add special formatting for specific patterns
+    result = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', 
+                   lambda m: f'<a href="{m.group(0)}" target="_blank">🔗 {m.group(0)}</a>', result)
+    
+    # Add emphasis to important numbers
+    result = re.sub(r'\b(\d+)\b', r'<b>\1</b>', result)
     
     cache.set(cache_key, result)
     return result
@@ -111,7 +254,7 @@ def generate_summary(text):
         return text[:1000] + "..." if len(text) > 1000 else text
 
 def format_wikipedia_content(content):
-    """Format Wikipedia content to preserve complete paragraphs only."""
+    """Enhanced Wikipedia content formatting."""
     paragraphs = content.split('\n\n')
     main_content = []
     char_count = 0
@@ -124,22 +267,28 @@ def format_wikipedia_content(content):
 
         para_length = len(para)
         if char_count + para_length <= max_chars:
-            main_content.append(para)
+            # Add styling to paragraphs
+            if para.startswith('='):  # Headings
+                level = len(re.match(r'^=+', para).group())
+                text = para.strip('=')
+                main_content.append(f"<h{level}>📚 {text}</h{level}>")
+            else:
+                main_content.append(f"<p>📝 {para}</p>")
             char_count += para_length
         else:
             break
 
-    formatted_content = '\n\n'.join(main_content)
+    formatted_content = '\n'.join(main_content)
     
     if len(formatted_content) >= max_chars:
-        formatted_content = formatted_content[:max_chars] + "\n\n[Content truncated]"
+        formatted_content += "\n\n⚠️ <i>Content truncated</i>"
 
     return format_text(formatted_content)
 
 def format_search_results(results):
-    """Format search results from DuckDuckGo with complete information."""
+    """Enhanced search results formatting with better styling."""
     if not results:
-        return "No results found."
+        return "❌ No results found."
     
     formatted = []
     for i, result in enumerate(results[:5], 1):
@@ -148,8 +297,11 @@ def format_search_results(results):
         url = result.get('href', '#')
         
         formatted.append(
-            f"<b>{i}. <a href='{html.escape(url)}' target='_blank'>{html.escape(title)}</a></b><br>"
-            f"{html.escape(body)}<br><br>"
+            f"<div class='search-result'>"
+            f"<h3>🔍 {i}. <a href='{html.escape(url)}' target='_blank'>{html.escape(title)}</a></h3>"
+            f"<p><i>{html.escape(body)}</i></p>"
+            f"<p><small>🔗 <a href='{html.escape(url)}' target='_blank'>Read more</a></small></p>"
+            f"</div>"
         )
 
     return ''.join(formatted)
@@ -352,14 +504,15 @@ def get_weather(query, user_id=None):
         
         if response.status_code == 200:
             result = (
-                f"⛅ Weather in {city}:\n"
-                f"• Temperature: {data['main']['temp']}°C (Feels like {data['main']['feels_like']}°C)\n"
-                f"• Conditions: {data['weather'][0]['description'].capitalize()}\n"
-                f"• Humidity: {data['main']['humidity']}%\n"
-                f"• Wind: {data['wind']['speed']} m/s"
+                f"<h2>⛅ Weather in {city}</h2>\n"
+                f"<div class='weather-info'>\n"
+                f"<p>🌡️ <b>Temperature:</b> {data['main']['temp']}°C (Feels like {data['main']['feels_like']}°C)</p>\n"
+                f"<p>🌤️ <b>Conditions:</b> {data['weather'][0]['description'].capitalize()}</p>\n"
+                f"<p>💧 <b>Humidity:</b> {data['main']['humidity']}%</p>\n"
+                f"<p>💨 <b>Wind:</b> {data['wind']['speed']} m/s</p>\n"
+                f"</div>"
             )
             
-            # Add to search history
             if user_id:
                 add_to_search_history(user_id, query, result, "weather")
                 
@@ -380,15 +533,28 @@ def get_news(query, user_id=None):
                 title = article['title'] or "No title"
                 source = article['source']['name'] or "Unknown source"
                 description = article['description'] or "No description available"
-                news_items.append(f"📰 {title} ({source})\n{description}\n")
+                news_items.append(
+                    f"<div class='news-item'>\n"
+                    f"<h3>📰 {title}</h3>\n"
+                    f"<p><i>Source: {source}</i></p>\n"
+                    f"<p>{description}</p>\n"
+                    f"</div>"
+                )
             
-            # Generate summary from headlines
             headlines = "\n".join([article['title'] for article in response["articles"][:3]])
             summary = generate_summary(f"News headlines about {query}:\n{headlines}")
             
-            result = "🗞️ Latest News:\n\n" + f"📌 Summary:\n{summary}\n\n" + '\n'.join(news_items)
+            result = (
+                f"<h2>🗞️ Latest News</h2>\n"
+                f"<div class='news-summary'>\n"
+                f"<h3>📌 Summary</h3>\n"
+                f"<p>{summary}</p>\n"
+                f"</div>\n"
+                f"<div class='news-list'>\n"
+                + '\n'.join(news_items) +
+                f"\n</div>"
+            )
             
-            # Add to search history
             if user_id:
                 add_to_search_history(user_id, query, result, "news")
                 
@@ -418,7 +584,7 @@ def get_definition(word, user_id=None):
                 senses = entry.get("entries", [{}])[0].get("senses", [])
                 for sense in senses[:10]:
                     if "definitions" in sense:
-                        definitions.append(f"• [{category}] {sense['definitions'][0]}")
+                        definitions.append(f"<li>📖 <b>[{category}]</b> {sense['definitions'][0]}</li>")
 
             if not definitions:
                 return f"❌ No definitions found for '{word}'."
@@ -427,12 +593,16 @@ def get_definition(word, user_id=None):
             summary = generate_summary(f"Definitions of {word}:\n{definition_text}")
 
             result = (
-                f"📖 Definitions of {word}:\n\n"
-                f"📌 Summary:\n{summary}\n\n"
-                f"📖 Full Definitions:\n{definition_text}"
+                f"<h2>📚 Definitions of {word}</h2>\n"
+                f"<div class='definition-summary'>\n"
+                f"<h3>📌 Summary</h3>\n"
+                f"<p>{summary}</p>\n"
+                f"</div>\n"
+                f"<div class='definition-list'>\n"
+                f"<ul>\n{definition_text}\n</ul>\n"
+                f"</div>"
             )
 
-            # Add to search history
             if user_id:
                 add_to_search_history(user_id, word, result, "dictionary")
 
@@ -443,6 +613,188 @@ def get_definition(word, user_id=None):
         return f"⚠️ Dictionary error: {str(e)}"
 
 # ========== MASTER FUNCTION ==========
+def get_short_answer(query: str) -> str:
+    """Handle short, direct answers for simple questions."""
+    query_lower = query.lower().strip()
+    
+    # Check for brief/short answer requests
+    brief_indicators = ["briefly", "in brief", "short", "in short", "in 3 lines", "in 3 sentences", "summarize"]
+    is_brief_request = any(indicator in query_lower for indicator in brief_indicators)
+    
+    # Remove brief indicators from query for processing
+    clean_query = query_lower
+    for indicator in brief_indicators:
+        clean_query = clean_query.replace(indicator, "").strip()
+    
+    # Greetings
+    greetings = {
+        "hi": "Hello! How can I help you today?",
+        "hello": "Hi there! What can I do for you?",
+        "hey": "Hey! How can I assist you?",
+        "hlw": "Hello! How can I help you?",
+        "hlo": "Hi! What can I do for you?",
+        "hii": "Hello! How can I help you today?",
+        "hiii": "Hi there! What can I do for you?",
+        "yo": "Hey! How can I help?",
+        "sup": "Hey! What's up? How can I help?",
+        "greetings": "Hello! How can I assist you today?"
+    }
+    
+    # Farewells
+    farewells = {
+        "bye": "Goodbye! Have a great day!",
+        "goodbye": "Bye! Take care!",
+        "see you": "See you later! Take care!",
+        "cya": "See you! Have a good one!",
+        "good night": "Good night! Sleep well!",
+        "gn": "Good night! Sweet dreams!",
+        "good morning": "Good morning! Have a great day!",
+        "gm": "Good morning! How can I help you today?",
+        "good afternoon": "Good afternoon! How can I assist you?",
+        "ga": "Good afternoon! What can I do for you?"
+    }
+    
+    # Thanks
+    thanks = {
+        "thanks": "You're welcome!",
+        "thank you": "You're welcome!",
+        "thx": "You're welcome!",
+        "ty": "You're welcome!",
+        "thank": "You're welcome!",
+        "appreciate it": "You're welcome!",
+        "thanks a lot": "You're welcome! Happy to help!",
+        "thank you so much": "You're very welcome!",
+        "thnx": "You're welcome!",
+        "tnx": "You're welcome!"
+    }
+    
+    # Affirmations
+    affirmations = {
+        "ok": "Alright!",
+        "okay": "Alright!",
+        "sure": "Great!",
+        "yes": "Perfect!",
+        "yeah": "Great!",
+        "yep": "Alright!",
+        "fine": "Good!",
+        "good": "Great!",
+        "great": "Excellent!",
+        "awesome": "Fantastic!"
+    }
+    
+    # Help related
+    help_queries = {
+        "help": "I can help you with information, calculations, weather, news, and more. What would you like to know?",
+        "help me": "I'm here to help! What do you need?",
+        "can you help": "Of course! What can I help you with?",
+        "do you help": "Yes, I can help! What do you need?",
+        "how do you work": "I can search information, calculate, check weather, get news, and more. What would you like to try?",
+        "what can you do": "I can search information, calculate, check weather, get news, and more. What would you like to try?",
+        "your capabilities": "I can search information, calculate, check weather, get news, and more. What would you like to try?",
+        "your features": "I can search information, calculate, check weather, get news, and more. What would you like to try?",
+        "your functions": "I can search information, calculate, check weather, get news, and more. What would you like to try?",
+        "your abilities": "I can search information, calculate, check weather, get news, and more. What would you like to try?"
+    }
+    
+    # Check all dictionaries
+    if query_lower in greetings:
+        return greetings[query_lower]
+    if query_lower in farewells:
+        return farewells[query_lower]
+    if query_lower in thanks:
+        return thanks[query_lower]
+    if query_lower in affirmations:
+        return affirmations[query_lower]
+    if query_lower in help_queries:
+        return help_queries[query_lower]
+    
+    # Time related
+    if "time" in query_lower:
+        return datetime.now().strftime("%I:%M %p")
+    
+    # Date related
+    if "date" in query_lower:
+        return datetime.now().strftime("%B %d, %Y")
+    
+    # Yes/No questions using Gemini
+    if query_lower.startswith(("is ", "are ", "do ", "does ", "did ", "can ", "will ", "should ", "would ", "could ")):
+        if "?" in query_lower:
+            try:
+                # Use Gemini to analyze the question with a more specific prompt
+                prompt = f"""You are a factual assistant. Answer this yes/no question with a clear yes or no followed by a brief explanation.
+                Question: {query}
+                Rules:
+                1. Your response MUST start with either "Yes:" or "No:"
+                2. Provide a brief, factual explanation after the yes/no
+                3. Keep the explanation under 2 sentences
+                4. Be direct and clear
+                5. Base your answer on scientific facts and common knowledge
+                
+                Example format:
+                Yes: [brief explanation]
+                or
+                No: [brief explanation]
+                
+                Your response:"""
+                
+                response = query_gemini(prompt, use_history=False)
+                
+                # Clean up the response
+                response = response.replace("🔮 NAF AI Response:\n\n", "").strip()
+                
+                # Extract yes/no from response
+                response_lower = response.lower()
+                if response_lower.startswith("yes:"):
+                    return response[4:].strip()
+                elif response_lower.startswith("no:"):
+                    return response[3:].strip()
+                elif "yes" in response_lower[:10]:
+                    return "Yes: " + response
+                elif "no" in response_lower[:10]:
+                    return "No: " + response
+                else:
+                    # If we can't parse the response, try to determine yes/no from content
+                    if any(word in response_lower for word in ["yes", "correct", "true", "right", "indeed"]):
+                        return "Yes: " + response
+                    elif any(word in response_lower for word in ["no", "incorrect", "false", "wrong", "not"]):
+                        return "No: " + response
+                    else:
+                        return "Yes: " + response  # Default to yes if we can't determine
+                    
+            except Exception as e:
+                print(f"Gemini error in yes/no question: {str(e)}")
+                # Fallback to simple keyword matching if Gemini fails
+                return "Yes" if any(word in query_lower for word in ["good", "right", "correct", "true", "possible", "available"]) else "No"
+    
+    # Handle brief/short answer requests
+    if is_brief_request:
+        try:
+            prompt = f"""Provide a very brief summary about {clean_query} in exactly 3 lines or less.
+            Rules:
+            1. Keep it extremely concise
+            2. Focus on the most important information
+            3. Use simple, clear language
+            4. Maximum 3 lines
+            5. No unnecessary details
+            
+            Your response:"""
+            
+            response = query_gemini(prompt, use_history=False)
+            response = response.replace("🔮 NAF AI Response:\n\n", "").strip()
+            
+            # Ensure response is not too long
+            lines = response.split('\n')
+            if len(lines) > 3:
+                response = '\n'.join(lines[:3])
+            
+            return response
+            
+        except Exception as e:
+            print(f"Gemini error in brief answer: {str(e)}")
+            return None
+    
+    return None
+
 @limiter.limit("10 per minute")
 def get_answer(query, user_id):
     query_lower = query.lower().strip()
@@ -455,6 +807,11 @@ def get_answer(query, user_id):
         cached_answer = cache.get(cache_key)
         if cached_answer:
             return cached_answer
+
+        # Try to get a short answer first
+        short_answer = get_short_answer(query)
+        if short_answer:
+            return short_answer
 
         # Check related history with optimized matching
         related_history = get_related_history(user_id, query)
@@ -477,8 +834,12 @@ def get_answer(query, user_id):
         response = None
         if query_lower.startswith("."):
             response = query_gemini(query[len("."):].strip(), use_history=True, user_id=user_id)
-        elif query_lower.startswith(("solve", "calculate", "compute")):
-            math_query = query.split(maxsplit=1)[1] if len(query.split()) > 1 else query
+        # Check for mathematical queries
+        elif (query_lower.startswith(("solve", "calculate", "compute")) or
+              any(op in query_lower for op in ["+", "-", "*", "/", "=", "^", "√", "square root", "power", "exponent"]) or
+              any(word in query_lower for word in ["plus", "minus", "times", "divided by", "multiply", "divide", "sum", "difference", "product", "quotient"]) or
+              any(word in query_lower for word in ["equation", "formula", "function", "derivative", "integral", "limit", "matrix", "vector", "probability", "statistics"])):
+            math_query = query.split(maxsplit=1)[1] if len(query.split()) > 1 and query_lower.startswith(("solve", "calculate", "compute")) else query
             response = query_wolfram(math_query, user_id)
         elif "weather" in query_lower:
             response = get_weather(query, user_id)
@@ -644,7 +1005,7 @@ def _corsify_actual_response(response):
     return response
 
 # Add new feature: Response summarization
-def summarize_response(text, max_length=200):
+def summarize_response(text, max_length=600):
     """Generate a concise summary of the response."""
     if len(text) <= max_length:
         return text
