@@ -87,134 +87,25 @@ user_history = {}
 
 # ========== HELPER FUNCTIONS ==========
 def format_text(text, max_line_length=500):
-    """Enhanced text formatting with styling and emojis."""
+    """Enhanced text formatting with professional structure and styling."""
     cache_key = f"format_{hash(text)}"
     cached_result = cache.get(cache_key)
     if cached_result:
         return cached_result
 
-    # Extended emoji map for different types of content
-    emoji_map = {
-        # Basic indicators
-        "important": "❗",
-        "note": "📝",
-        "info": "ℹ️",
-        "warning": "⚠️",
-        "success": "✅",
-        "error": "❌",
-        "question": "❓",
-        "answer": "💡",
-        "link": "🔗",
-        
-        # Time and date
-        "time": "⏰",
-        "date": "📅",
-        "schedule": "📆",
-        "deadline": "⏳",
-        "reminder": "🔔",
-        
-        # Location and travel
-        "location": "📍",
-        "map": "🗺️",
-        "travel": "✈️",
-        "direction": "🧭",
-        "destination": "🎯",
-        
-        # People and communication
-        "person": "👤",
-        "organization": "🏢",
-        "team": "👥",
-        "message": "💬",
-        "email": "📧",
-        "phone": "📱",
-        "contact": "📞",
-        
-        # Events and activities
-        "event": "🎉",
-        "meeting": "🤝",
-        "party": "🎊",
-        "celebration": "🎈",
-        "activity": "🎯",
-        
-        # Ideas and concepts
-        "idea": "💭",
-        "thought": "🤔",
-        "concept": "💡",
-        "plan": "📋",
-        "strategy": "🎯",
-        
-        # Information and knowledge
-        "fact": "📚",
-        "knowledge": "🧠",
-        "learning": "📖",
-        "education": "🎓",
-        "research": "🔬",
-        
-        # Tips and advice
-        "tip": "💡",
-        "advice": "💭",
-        "suggestion": "💡",
-        "recommendation": "👍",
-        "hint": "💡",
-        
-        # Examples and samples
-        "example": "📋",
-        "sample": "📄",
-        "template": "📑",
-        "pattern": "📊",
-        "model": "📐",
-        
-        # Summary and overview
-        "summary": "📌",
-        "overview": "📋",
-        "review": "📝",
-        "analysis": "📊",
-        "report": "📑",
-        
-        # Status and progress
-        "status": "📊",
-        "progress": "📈",
-        "complete": "✅",
-        "pending": "⏳",
-        "in progress": "🔄",
-        
-        # Categories and types
-        "category": "📑",
-        "type": "🏷️",
-        "label": "🏷️",
-        "tag": "🏷️",
-        "group": "📦",
-        
-        # Actions and operations
-        "action": "⚡",
-        "operation": "⚙️",
-        "process": "🔄",
-        "function": "⚡",
-        "task": "📋"
-    }
-
-    # Add styling to text
-    text = html.escape(text)
+    # Add spacing between sections
+    text = re.sub(r'\n\n+', '\n\n', text)  # Normalize multiple newlines
     
-    # Format headings with emojis
-    text = re.sub(r'^(#+)\s+(.+)$', lambda m: f'<h{len(m.group(1))}>📌 {m.group(2)}</h{len(m.group(1))}>', text, flags=re.MULTILINE)
+    # Format headings with better spacing and styling
+    text = re.sub(r'^(#+)\s+(.+)$', lambda m: f'\n<h{len(m.group(1))} class="section-title">📌 {m.group(2)}</h{len(m.group(1))}>\n', text, flags=re.MULTILINE)
     
-    # Format bold and italic with enhanced styling
-    text = re.sub(r'\*\*(.+?)\*\*', r'<b>💪 \1</b>', text)  # Bold with strength emoji
-    text = re.sub(r'\*(.+?)\*', r'<i>✨ \1</i>', text)  # Italic with sparkle emoji
+    # Format bullet points with better styling
+    text = re.sub(r'^\s*[-•]\s+(.+)$', r'\n<li class="bullet-point">• \1</li>', text, flags=re.MULTILINE)
     
-    # Format lists with bullet points
-    text = re.sub(r'^\s*[-•]\s+(.+)$', r'<li>• \1</li>', text, flags=re.MULTILINE)
+    # Format numbered lists with better styling
+    text = re.sub(r'^\s*(\d+)\.\s+(.+)$', r'\n<li class="numbered-step">🔢 \1. \2</li>', text, flags=re.MULTILINE)
     
-    # Format numbered lists
-    text = re.sub(r'^\s*(\d+)\.\s+(.+)$', r'<li>🔢 \1. \2</li>', text, flags=re.MULTILINE)
-    
-    # Add emojis based on content
-    for keyword, emoji in emoji_map.items():
-        if keyword in text.lower():
-            text = text.replace(keyword, f"{emoji} {keyword}")
-    
-    # Format paragraphs with enhanced styling
+    # Format paragraphs with better spacing and styling
     paragraphs = text.split('\n')
     formatted_paragraphs = []
     for p in paragraphs:
@@ -224,22 +115,37 @@ def format_text(text, max_line_length=500):
             else:
                 # Add different paragraph styles based on content
                 if '?' in p:
-                    formatted_paragraphs.append(f'<p>❓ {p}</p>')  # Questions
+                    formatted_paragraphs.append(f'\n<p class="question">❓ {p}</p>\n')  # Questions
                 elif '!' in p:
-                    formatted_paragraphs.append(f'<p>❗ {p}</p>')  # Exclamations
+                    formatted_paragraphs.append(f'\n<p class="important">❗ {p}</p>\n')  # Important notes
                 elif len(p) > 100:
-                    formatted_paragraphs.append(f'<p>📝 {p}</p>')  # Long paragraphs
+                    formatted_paragraphs.append(f'\n<p class="detailed">📝 {p}</p>\n')  # Detailed paragraphs
                 else:
-                    formatted_paragraphs.append(f'<p>💭 {p}</p>')  # Regular paragraphs
+                    formatted_paragraphs.append(f'\n<p class="regular">💭 {p}</p>\n')  # Regular paragraphs
     
     result = '\n'.join(formatted_paragraphs)
     
-    # Add special formatting for specific patterns
-    result = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', 
-                   lambda m: f'<a href="{m.group(0)}" target="_blank">🔗 {m.group(0)}</a>', result)
+    # Format code blocks
+    result = re.sub(r'```(\w+)?\n(.*?)\n```', r'\n<pre class="code-block"><code class="\1">\2</code></pre>\n', result, flags=re.DOTALL)
     
-    # Add emphasis to important numbers
-    result = re.sub(r'\b(\d+)\b', r'<b>\1</b>', result)
+    # Format blockquotes
+    result = re.sub(r'^>\s+(.+)$', r'\n<blockquote class="note">💡 \1</blockquote>\n', result, flags=re.MULTILINE)
+    
+    # Format links with better styling
+    result = re.sub(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', 
+                   lambda m: f'\n<a href="{m.group(0)}" class="link" target="_blank">🔗 {m.group(0)}</a>\n', result)
+    
+    # Add emphasis to important keywords
+    result = re.sub(r'\b(important|key|critical|essential|note|warning|caution|tip)\b', r'<strong>\1</strong>', result, flags=re.IGNORECASE)
+    
+    # Add subtle emphasis to secondary information
+    result = re.sub(r'\b(optional|additional|extra|further|more)\b', r'<em>\1</em>', result, flags=re.IGNORECASE)
+    
+    # Add spacing around important sections
+    result = re.sub(r'(Summary:|Results:|Details:|Note:|Warning:|Tip:)', r'\n\n<div class="section-header">\1</div>\n', result)
+    
+    # Clean up excessive spacing
+    result = re.sub(r'\n{3,}', '\n\n', result)
     
     cache.set(cache_key, result)
     return result
@@ -254,7 +160,7 @@ def generate_summary(text):
         return text[:1000] + "..." if len(text) > 1000 else text
 
 def format_wikipedia_content(content):
-    """Enhanced Wikipedia content formatting."""
+    """Enhanced Wikipedia content formatting with better spacing."""
     paragraphs = content.split('\n\n')
     main_content = []
     char_count = 0
@@ -267,13 +173,13 @@ def format_wikipedia_content(content):
 
         para_length = len(para)
         if char_count + para_length <= max_chars:
-            # Add styling to paragraphs
+            # Add styling to paragraphs with better spacing
             if para.startswith('='):  # Headings
                 level = len(re.match(r'^=+', para).group())
                 text = para.strip('=')
-                main_content.append(f"<h{level}>📚 {text}</h{level}>")
+                main_content.append(f"\n<h{level}>📚 {text}</h{level}>\n")
             else:
-                main_content.append(f"<p>📝 {para}</p>")
+                main_content.append(f"\n<p>📝 {para}</p>\n")
             char_count += para_length
         else:
             break
@@ -281,12 +187,15 @@ def format_wikipedia_content(content):
     formatted_content = '\n'.join(main_content)
     
     if len(formatted_content) >= max_chars:
-        formatted_content += "\n\n⚠️ <i>Content truncated</i>"
+        formatted_content += "\n\n⚠️ <i>Content truncated</i>\n"
+    
+    # Add section dividers
+    formatted_content = re.sub(r'</h\d>', '</h\\1>\n<hr class="section-divider">\n', formatted_content)
 
     return format_text(formatted_content)
 
 def format_search_results(results):
-    """Enhanced search results formatting with better styling."""
+    """Enhanced search results formatting with better spacing and structure."""
     if not results:
         return "❌ No results found."
     
@@ -297,14 +206,14 @@ def format_search_results(results):
         url = result.get('href', '#')
         
         formatted.append(
-            f"<div class='search-result'>"
-            f"<h3>🔍 {i}. <a href='{html.escape(url)}' target='_blank'>{html.escape(title)}</a></h3>"
-            f"<p><i>{html.escape(body)}</i></p>"
-            f"<p><small>🔗 <a href='{html.escape(url)}' target='_blank'>Read more</a></small></p>"
-            f"</div>"
+            f"\n<div class='search-result'>\n"
+            f"<h3>🔍 {i}. <a href='{html.escape(url)}' target='_blank'>{html.escape(title)}</a></h3>\n"
+            f"<p><i>{html.escape(body)}</i></p>\n"
+            f"<p><small>🔗 <a href='{html.escape(url)}' target='_blank'>Read more</a></small></p>\n"
+            f"</div>\n"
         )
 
-    return ''.join(formatted)
+    return '\n'.join(formatted)
 
 def get_user_session_id():
     """Get a unique user session ID"""
@@ -335,15 +244,22 @@ def add_to_search_history(user_id, query, response, source):
         history['search_history'] = history['search_history'][-50:]
 
 def add_to_gemini_history(user_id, query, response):
-    """Add a conversation to the Gemini history"""
+    """Add a conversation to the Gemini history with improved context handling"""
     history = get_user_history(user_id)
+    
+    # Clean the response text for storage
+    clean_response = response.replace("🔮 NAF AI Response:\n\n", "")
+    
+    # Add the exchange to history
     history['gemini_history'].append({
         'user': query,
-        'assistant': response.replace("🔮 NAF AI Response:\n\n", "")
+        'assistant': clean_response,
+        'timestamp': datetime.now().isoformat()
     })
-    # Keep only the most recent 5 exchanges for context
-    if len(history['gemini_history']) > 7:
-        history['gemini_history'] = history['gemini_history'][-7:]
+    
+    # Keep only the most recent 10 exchanges for context
+    if len(history['gemini_history']) > 10:
+        history['gemini_history'] = history['gemini_history'][-10:]
 
 def get_related_history(user_id, query):
     """Get relevant history entries based on similarity to current query"""
@@ -372,11 +288,34 @@ def query_gemini(prompt, use_history=True, user_id=None):
         context = []
         if use_history and user_id:
             history = get_user_history(user_id)
-            for exchange in history['gemini_history']:
+            # Get the last 5 exchanges for better context
+            recent_history = history['gemini_history'][-5:] if len(history['gemini_history']) > 5 else history['gemini_history']
+            
+            # Add system message to set context
+            context.append("""You are a helpful AI assistant. Follow these rules:
+1. For general knowledge questions, provide direct answers based on your knowledge
+2. For questions about specific people/things mentioned in previous context:
+   - If the information was provided in previous context, use it
+   - If the information wasn't provided, acknowledge that you don't have that specific information
+3. Be honest about what you know and don't know
+4. Maintain a natural conversation flow
+5. If you're unsure about something, say so""")
+            
+            # Add conversation history
+            for exchange in recent_history:
                 context.append(f"Human: {exchange['user']}")
                 context.append(f"Assistant: {exchange['assistant']}")
         
-        full_prompt = ("Context:\n" + "\n".join(context) + "\n\nQuestion: " + prompt) if context else prompt
+        # Add current question with context hint
+        if context:
+            full_prompt = (
+                "Context from previous conversation:\n" + 
+                "\n".join(context) + 
+                "\n\nCurrent question: " + prompt +
+                "\n\nInstructions: If this question requires specific information from previous context that wasn't provided, acknowledge that you don't have that information. Otherwise, provide a helpful response based on your general knowledge."
+            )
+        else:
+            full_prompt = prompt
         
         response = requests.post(
             url,
@@ -534,25 +473,26 @@ def get_news(query, user_id=None):
                 source = article['source']['name'] or "Unknown source"
                 description = article['description'] or "No description available"
                 news_items.append(
-                    f"<div class='news-item'>\n"
+                    f"\n<div class='news-item'>\n"
                     f"<h3>📰 {title}</h3>\n"
                     f"<p><i>Source: {source}</i></p>\n"
                     f"<p>{description}</p>\n"
-                    f"</div>"
+                    f"</div>\n"
                 )
             
             headlines = "\n".join([article['title'] for article in response["articles"][:3]])
             summary = generate_summary(f"News headlines about {query}:\n{headlines}")
             
             result = (
-                f"<h2>🗞️ Latest News</h2>\n"
+                f"\n<h2>🗞️ Latest News</h2>\n"
                 f"<div class='news-summary'>\n"
                 f"<h3>📌 Summary</h3>\n"
                 f"<p>{summary}</p>\n"
                 f"</div>\n"
+                f"<hr class='section-divider'>\n"
                 f"<div class='news-list'>\n"
                 + '\n'.join(news_items) +
-                f"\n</div>"
+                f"\n</div>\n"
             )
             
             if user_id:
@@ -829,37 +769,51 @@ def get_answer(query, user_id):
                 "\n".join(history_items) + 
                 "\n\nHere's the new answer:\n\n"
             )
-
-        # Process query with optimized routing
+            
+        # Process query with optimized routing based on query type
         response = None
-        if query_lower.startswith("."):
-            response = query_gemini(query[len("."):].strip(), use_history=True, user_id=user_id)
-        # Check for mathematical queries
-        elif (query_lower.startswith(("solve", "calculate", "compute")) or
-              any(op in query_lower for op in ["+", "-", "*", "/", "=", "^", "√", "square root", "power", "exponent"]) or
-              any(word in query_lower for word in ["plus", "minus", "times", "divided by", "multiply", "divide", "sum", "difference", "product", "quotient"]) or
-              any(word in query_lower for word in ["equation", "formula", "function", "derivative", "integral", "limit", "matrix", "vector", "probability", "statistics"])):
-            math_query = query.split(maxsplit=1)[1] if len(query.split()) > 1 and query_lower.startswith(("solve", "calculate", "compute")) else query
-            response = query_wolfram(math_query, user_id)
-        elif "weather" in query_lower:
-            response = get_weather(query, user_id)
-        elif "news" in query_lower:
+        query_type = request.get_json().get('queryType')
+        
+        if query_type == "math":
+            response = query_wolfram(query, user_id)
+        elif query_type == "news":
             topic = query_lower.replace("news", "").strip() or "current events"
             response = get_news(topic, user_id)
-        elif query_lower.startswith(("define", "meaning of")):
+        elif query_type == "weather":
+            response = get_weather(query, user_id)
+        elif query_type == "define":
             word = re.sub(r'^(define|what is|meaning of)\s+', '', query_lower)
             response = get_definition(word, user_id)
-        elif any(word in query_lower for word in ["history", "medical", "war", "disease", "president", "empire","about","born","birth"]):
-            response = cached_search(query, 'wikipedia')
+        elif query_type == "gemini":
+            response = query_gemini(query, use_history=True, user_id=user_id)
         else:
-            response = cached_search(query, 'duckduckgo')
-            if "No results" in response:
-                response = f"I couldn't find specific information about '{query}'. Would you like to try rephrasing your question?"
-
+            # Default behavior - try to determine the type from the query
+            if query_lower.startswith("."):
+                response = query_gemini(query[len("."):].strip(), use_history=True, user_id=user_id)
+            elif (query_lower.startswith(("solve", "calculate", "compute")) or
+                  any(op in query_lower for op in ["+", "-", "*", "/", "=", "^", "√", "square root", "power", "exponent"]) or
+                  any(word in query_lower for word in ["plus", "minus", "times", "divided by", "multiply", "divide", "sum", "difference", "product", "quotient"]) or
+                  any(word in query_lower for word in ["equation", "formula", "function", "derivative", "integral", "limit", "matrix", "vector", "probability", "statistics"])):
+                response = query_wolfram(query, user_id)
+            elif "weather" in query_lower:
+                response = get_weather(query, user_id)
+            elif "news" in query_lower:
+                topic = query_lower.replace("news", "").strip() or "current events"
+                response = get_news(topic, user_id)
+            elif query_lower.startswith(("define", "meaning of")):
+                word = re.sub(r'^(define|what is|meaning of)\s+', '', query_lower)
+                response = get_definition(word, user_id)
+            elif any(word in query_lower for word in ["history", "medical", "war", "disease", "president", "empire","about","born","birth"]):
+                        response = cached_search(query, 'wikipedia')
+            else:
+                    response = cached_search(query, 'duckduckgo')
+                    if "No results" in response:
+                        response = f"I couldn't find specific information about '{query}'. Would you like to try rephrasing your question?"
+        
         # Add history context if available
         if history_prompt and not query_lower.startswith("."):
             response = history_prompt + response
-
+            
         # Cache the response
         cache.set(cache_key, response, timeout=300)
         return response
@@ -1006,7 +960,7 @@ def _corsify_actual_response(response):
 
 # Add new feature: Response summarization
 def summarize_response(text, max_length=600):
-    """Generate a concise summary of the response."""
+    """Generate a concise summary of the response with better formatting."""
     if len(text) <= max_length:
         return text
     
@@ -1021,7 +975,22 @@ def summarize_response(text, max_length=600):
         else:
             break
     
-    return '.'.join(summary) + '...'
+    # Add spacing and formatting to summary
+    formatted_summary = '.'.join(summary) + '...'
+    
+    # Add line breaks after sentences
+    formatted_summary = re.sub(r'([.!?])\s+', r'\1\n\n', formatted_summary)
+    
+    # Add spacing around important sections
+    formatted_summary = re.sub(r'(Summary:|Results:|Details:|Note:)', r'\n\n\1\n', formatted_summary)
+    
+    # Add spacing around lists
+    formatted_summary = re.sub(r'(\d+\.|\*|\-)', r'\n\1', formatted_summary)
+    
+    # Clean up excessive spacing
+    formatted_summary = re.sub(r'\n{3,}', '\n\n', formatted_summary)
+    
+    return formatted_summary
 
 # Add new feature: Smart caching for search results
 @cache.memoize(timeout=300)
@@ -1044,5 +1013,5 @@ def get_metrics():
 
 # Run the app with optimized settings
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5000))  
     socketio.run(app, host='0.0.0.0', port=port, debug=False, use_reloader=False)  
