@@ -1,10 +1,11 @@
 Flask
-flask-cors
-flask-socketio
+Flask-Cors
 wikipedia
 requests
 duckduckgo-search
-flask-caching
-flask-limiter
-flask-compress
-gunicorn
+gunicorn==20.1.0
+Flask_Socketio
+flask-caching==2.1.0
+flask-limiter==3.5.0
+flask-compress==1.14
+eventlet==0.33.3
