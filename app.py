@@ -735,7 +735,7 @@ def get_short_answer(query: str) -> str:
     
     return None
 
-@limiter.limit("10 per minute")
+@limiter.limit("35 per minute")
 def get_answer(query, user_id):
     query_lower = query.lower().strip()
     if not query_lower:
@@ -823,7 +823,7 @@ def get_answer(query, user_id):
 
 # ========== Flask Routes ==========
 @app.route('/ask', methods=['POST', 'OPTIONS'])
-@limiter.limit("10 per minute")
+@limiter.limit("35 per minute")
 def ask():
     if request.method == 'OPTIONS':
         return _build_cors_preflight_response()
